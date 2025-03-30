@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from models import ResCNNWithAuxiliaries
+import time
 
 class Client:
     def __init__(self, client_id, train_loader):
@@ -8,6 +9,7 @@ class Client:
         self.train_loader = train_loader
         self.model = None
         self.current_layer = 0
+        self.logs = []
 
     def initialize_model(self, global_model):
         self.model = ResCNNWithAuxiliaries()
@@ -30,7 +32,13 @@ class Client:
         )
         criterion = nn.CrossEntropyLoss()
 
-        for _ in range(epochs):
+        epoch_logs = []
+        for epoch in range(epochs):
+            correct = 0
+            total = 0
+            epoch_loss = 0.0
+            start = time.time()
+
             for data, labels in self.train_loader:
                 optimizer.zero_grad()
                 x = data
@@ -42,6 +50,23 @@ class Client:
                 loss.backward()
                 optimizer.step()
 
+                epoch_loss += loss.item()
+                _, predicted = aux_output.max(1)
+                total += labels.size(0)
+                correct += predicted.eq(labels).sum().item()
+
+            accuracy = 100. * correct / total
+            duration = time.time() - start
+            print(f"[Client {self.id}] Layer {layer_idx}, Epoch {epoch+1}: Loss={epoch_loss:.4f}, Acc={accuracy:.2f}%, Time={duration:.2f}s")
+            epoch_logs.append({
+                "layer": layer_idx,
+                "epoch": epoch + 1,
+                "loss": epoch_loss,
+                "accuracy": accuracy,
+                "time": duration
+            })
+
+        self.logs.extend(epoch_logs)
         return {
             'layer_weights': self.model.layers[layer_idx].state_dict(),
             'aux_weights': self.model.aux_classifiers[layer_idx].state_dict()

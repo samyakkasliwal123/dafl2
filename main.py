@@ -1,4 +1,5 @@
 if __name__ == "__main__":
+    import os
     from torchvision import datasets, transforms
     from torch.utils.data import DataLoader, Subset
     from client import Client
@@ -7,16 +8,24 @@ if __name__ == "__main__":
     from layerwise import LayerwiseManager
 
     transform = transforms.Compose([
+        transforms.Resize((32, 32)),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    train_data = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+    dataset_path = os.path.join("data", "VisDrone2019-DET-train", "images")
+    if not os.path.exists(dataset_path):
+        raise RuntimeError("Dataset not found. Run download_data.py first.")
 
+    dataset = datasets.ImageFolder(root=dataset_path, transform=transform)
+
+    # Simulate 3 non-IID clients
+    total = len(dataset)
+    third = total // 3
     clients = [
-        Client(0, DataLoader(Subset(train_data, range(0, 10000)), batch_size=32)),
-        Client(1, DataLoader(Subset(train_data, range(10000, 20000)), batch_size=32)),
-        Client(2, DataLoader(Subset(train_data, range(20000, 30000)), batch_size=32))
+        Client(0, DataLoader(Subset(dataset, list(range(0, third))), batch_size=32)),
+        Client(1, DataLoader(Subset(dataset, list(range(third, 2*third))), batch_size=32)),
+        Client(2, DataLoader(Subset(dataset, list(range(2*third, total))), batch_size=32))
     ]
 
     server = Server(num_layers=3)
@@ -28,4 +37,4 @@ if __name__ == "__main__":
     layerwise = LayerwiseManager(clients, server, num_layers=3)
     layerwise.train()
 
-    print("\nFederated training complete.")
+    print("\nFederated training complete. See 'layerwise_training_logs.csv' for metrics.")
