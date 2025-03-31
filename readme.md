@@ -1,39 +1,58 @@
-# DAFL2: Decentralized Federated Learning with Layer-wise and Split Learning Integration
+# DAFL2: Federated Learning with VisDrone Dataset
 
-This project implements a federated learning framework with support for layer-wise training, auxiliary classifiers, and optional split learning components. It uses CIFAR-10 for demonstration.
+This project implements a federated learning framework with support for layer-wise training and auxiliary classifiers using the VisDrone 2019 drone image classification dataset.
 
-##  Project Structure
+## Project Structure
 ```
-├── client.py               # Client-side logic
-├── server.py               # Server-side logic
-├── models.py               # CNN model with residual blocks + auxiliary heads
-├── communication.py        # Sync utilities for model weights
-├── layerwise.py            # Layer-by-layer federated manager
-├── splitlearning.py        # Optional model split utilities
-├── main.py                 # Training entry point
+├── client.py               # Client logic for local training
+├── server.py               # Server logic for model aggregation
+├── models.py               # Residual CNN model with auxiliary classifiers
+├── communication.py        # Utilities for broadcasting and collecting updates
+├── layerwise.py            # Manages training each layer across clients
+├── splitlearning.py        # Optional module for model splitting
+├── download_data.py        # Downloads and extracts VisDrone 2019 dataset
+├── main.py                 # Entry point for training
 ├── test_main.py            # Unit tests
-├── requirements.txt        # Dependencies
+├── requirements.txt        # Python dependencies
 ├── README.md               # Project documentation
 ```
 
-##  Installation
+## Installation
+Install the required Python libraries:
 ```bash
 pip install -r requirements.txt
 ```
 
-##  Running the Code
+## Download Dataset
+Run the following to automatically download and extract the VisDrone 2019 dataset:
+```bash
+python download_data.py
+```
+
+## Run Federated Training
 ```bash
 python main.py
 ```
-This launches a federated learning loop with 3 clients. Each client trains one layer at a time. The server aggregates updates using simple averaging.
+This will launch layer-wise federated training across simulated clients using the drone images.
 
-##  Running Tests
+Training logs including per-client layer loss, accuracy, and time will be saved to:
+```
+layerwise_training_logs.csv
+```
+
+## Run Tests
+Run unit tests to verify model structure and output:
 ```bash
 python test_main.py
 ```
-This checks the output shape of the model and validates the forward pass.
 
-##  Optional: Using Split Learning
+## Notes
+- The dataset is split across 3 clients for non-IID training.
+- Each client trains one layer at a time using auxiliary heads.
+- The server aggregates weights layer-wise and updates the global model.
+
+This setup demonstrates scalable and modular federated learning on real-world drone imagery without needing centralized data.
+
 You can integrate split learning using the `splitlearning.py` module. See the `ClientModel` and `ServerModel` classes for splitting the architecture at any layer.
 
 ---
